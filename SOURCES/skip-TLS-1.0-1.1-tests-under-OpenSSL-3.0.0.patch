@@ -1,0 +1,23 @@
+From 06042ef913322a6c1ec85ddfa881d11336a617ce Mon Sep 17 00:00:00 2001
+From: Christian Heimes <christian@python.org>
+Date: Fri, 9 Apr 2021 15:43:06 +0200
+Subject: [PATCH] bpo-4379: Skip TLS 1.0/1.1 tests under OpenSSL 3.0.0
+ (GH-25304)
+
+Signed-off-by: Christian Heimes <christian@python.org>
+(cherry picked from commit 5151d642004c59cce58d669be85d9a5e987f51d3)
+
+Co-authored-by: Christian Heimes <christian@python.org>
+diff --git a/Lib/test/test_ssl.py b/Lib/test/test_ssl.py
+index 7889e95617a2..aed3a8cd83ed 100644
+--- a/Lib/test/test_ssl.py
++++ b/Lib/test/test_ssl.py
+@@ -43,6 +43,8 @@ if get_fips_mode():
+ HOST = support.HOST
+ IS_LIBRESSL = ssl.OPENSSL_VERSION.startswith('LibreSSL')
+ IS_OPENSSL_1_1 = not IS_LIBRESSL and ssl.OPENSSL_VERSION_INFO >= (1, 1, 0)
++IS_OPENSSL_1_1_1 = not IS_LIBRESSL and ssl.OPENSSL_VERSION_INFO >= (1, 1, 1)
++IS_OPENSSL_3_0_0 = not IS_LIBRESSL and ssl.OPENSSL_VERSION_INFO >= (3, 0, 0)
+ PY_SSL_DEFAULT_CIPHERS = sysconfig.get_config_var('PY_SSL_DEFAULT_CIPHERS')
+ 
+ # On RHEL8 openssl disables TLSv1 and TLSv1.1 on runtime.

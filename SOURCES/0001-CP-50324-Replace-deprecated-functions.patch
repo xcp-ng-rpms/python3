@@ -1,0 +1,38 @@
+From c14170c9162072e11651ce121ecaaa5d00ad8193 Mon Sep 17 00:00:00 2001
+From: Deli Zhang <deli.zhang@citrix.com>
+Date: Wed, 21 Aug 2024 05:19:31 +0000
+Subject: [PATCH] CP-50324: Replace deprecated functions
+
+ERR_func_error_string, HMAC_* and TLSv1*_method are still used in
+python3 master branch, so can not replace completely.
+
+Signed-off-by: Deli Zhang <deli.zhang@citrix.com>
+---
+ Modules/_ssl.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/Modules/_ssl.c b/Modules/_ssl.c
+index 9e68edb..f65f574 100644
+--- a/Modules/_ssl.c
++++ b/Modules/_ssl.c
+@@ -1184,7 +1184,7 @@ _get_peer_alt_names (X509 *certificate) {
+                     goto fail;
+                 }
+                 PyTuple_SET_ITEM(t, 0, v);
+-                v = PyUnicode_FromStringAndSize((char *)ASN1_STRING_data(as),
++                v = PyUnicode_FromStringAndSize((char *)ASN1_STRING_get0_data(as),
+                                                 ASN1_STRING_length(as));
+                 if (v == NULL) {
+                     Py_DECREF(t);
+@@ -4865,7 +4865,7 @@ PySSL_RAND(int len, int pseudo)
+     if (bytes == NULL)
+         return NULL;
+     if (pseudo) {
+-        ok = RAND_pseudo_bytes((unsigned char*)PyBytes_AS_STRING(bytes), len);
++        ok = RAND_bytes((unsigned char*)PyBytes_AS_STRING(bytes), len);
+         if (ok == 0 || ok == 1)
+             return Py_BuildValue("NO", bytes, ok == 1 ? Py_True : Py_False);
+     }
+-- 
+2.43.0
+

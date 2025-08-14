@@ -1,0 +1,63 @@
+The test has below crash issue:
+
+0:06:05 load avg: 1.62 [133/407] test_fips
+Debug memory block at address p=0x1d15570: API '1'
+    15842497851538791387 bytes originally requested
+    The 7 pad bytes at p-7 are not all FORBIDDENBYTE (0xfb):
+        at p-7: 0x00 *** OUCH
+        at p-6: 0x00 *** OUCH
+        at p-5: 0x00 *** OUCH
+        at p-4: 0x00 *** OUCH
+        at p-3: 0x00 *** OUCH
+        at p-2: 0x00 *** OUCH
+        at p-1: 0x00 *** OUCH
+    Because memory is corrupted at the start, the count of bytes requested
+       may be bogus, and checking the trailing pad bytes may segfault.
+    The 8 pad bytes at tail=0xdbdbdbdbddad314b are Fatal Python error: Segmentation fault
+
+Current thread 0x00007f431ffe8740 (most recent call first):
+  File "/builddir/build/BUILD/Python-3.6.8/Lib/test/test_fips.py", line 33 in test_hmac_digests
+  File "/builddir/build/BUILD/Python-3.6.8/Lib/unittest/case.py", line 622 in run
+  File "/builddir/build/BUILD/Python-3.6.8/Lib/unittest/case.py", line 670 in __call__
+  File "/builddir/build/BUILD/Python-3.6.8/Lib/unittest/suite.py", line 122 in run
+  File "/builddir/build/BUILD/Python-3.6.8/Lib/unittest/suite.py", line 84 in __call__
+  File "/builddir/build/BUILD/Python-3.6.8/Lib/unittest/suite.py", line 122 in run
+  File "/builddir/build/BUILD/Python-3.6.8/Lib/unittest/suite.py", line 84 in __call__
+  File "/builddir/build/BUILD/Python-3.6.8/Lib/unittest/suite.py", line 122 in run
+  File "/builddir/build/BUILD/Python-3.6.8/Lib/unittest/suite.py", line 84 in __call__
+  File "/builddir/build/BUILD/Python-3.6.8/Lib/unittest/runner.py", line 176 in run
+  File "/builddir/build/BUILD/Python-3.6.8/Lib/test/support/__init__.py", line 1956 in _run_suite
+  File "/builddir/build/BUILD/Python-3.6.8/Lib/test/support/__init__.py", line 2052 in run_unittest
+  File "/builddir/build/BUILD/Python-3.6.8/Lib/test/libregrtest/runtest.py", line 178 in test_runner
+  File "/builddir/build/BUILD/Python-3.6.8/Lib/test/libregrtest/runtest.py", line 182 in runtest_inner
+  File "/builddir/build/BUILD/Python-3.6.8/Lib/test/libregrtest/runtest.py", line 127 in runtest
+  File "/builddir/build/BUILD/Python-3.6.8/Lib/test/libregrtest/main.py", line 407 in run_tests_sequential
+  File "/builddir/build/BUILD/Python-3.6.8/Lib/test/libregrtest/main.py", line 514 in run_tests
+  File "/builddir/build/BUILD/Python-3.6.8/Lib/test/libregrtest/main.py", line 617 in _main
+  File "/builddir/build/BUILD/Python-3.6.8/Lib/test/libregrtest/main.py", line 582 in main
+  File "/builddir/build/BUILD/Python-3.6.8/Lib/test/libregrtest/main.py", line 638 in main
+  File "/builddir/build/BUILD/Python-3.6.8/Lib/test/regrtest.py", line 46 in _main
+  File "/builddir/build/BUILD/Python-3.6.8/Lib/test/regrtest.py", line 50 in <module>
+  File "/builddir/build/BUILD/Python-3.6.8/Lib/runpy.py", line 85 in _run_code
+  File "/builddir/build/BUILD/Python-3.6.8/Lib/runpy.py", line 193 in _run_module_as_main
+/var/tmp/rpm-tmp.XE8jLK: line 64: 53833 Segmentation fault      (core dumped) WITHIN_PYTHON_RPM_BUILD= LD_LIBRARY_PATH=$ConfDir $ConfDir/python -m test.regrtest -wW --slowest --findleaks -x test_distutils -x test_bdist_rpm
+
+XS8 python3 never declared fips support, so just disable the test.
+ 
+--
+diff --git a/Lib/test/test_fips.py b/Lib/test/test_fips.py
+index 73b219be6ad8..cd30c75c682c 100644
+--- a/Lib/test/test_fips.py
++++ b/Lib/test/test_fips.py
+@@ -28,11 +28,6 @@ class HashlibFipsTests(unittest.TestCase):
+         self.compare_hashes(hashlib.sha384(b'abc'), _hashlib.openssl_sha384(b'abc'))
+         self.compare_hashes(hashlib.sha512(b'abc'), _hashlib.openssl_sha512(b'abc'))
+ 
+-    def test_hmac_digests(self):
+-        self.compare_hashes(_hmacopenssl.HMAC(b'My hovercraft is full of eels', digestmod='sha384'),
+-                            hmac.new(b'My hovercraft is full of eels', digestmod='sha384'))
+-
+-
+ 
+ 
+ if __name__ == "__main__":

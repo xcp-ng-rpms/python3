@@ -1,0 +1,20 @@
+From 8791cb8d87e99d4ef83ba75b056b9d167475cd75 Mon Sep 17 00:00:00 2001
+From: Christian Heimes <christian@python.org>
+Date: Thu, 22 Apr 2021 21:58:13 +0200
+Subject: [PATCH] bpo-38820: Test with OpenSSL 3.0.0-alpha15
+
+Signed-off-by: Christian Heimes <christian@python.org>
+diff --git a/Tools/ssl/multissltests.py b/Tools/ssl/multissltests.py
+index 8742d962196e..a89bc12a8f96 100755
+--- a/Tools/ssl/multissltests.py
++++ b/Tools/ssl/multissltests.py
+@@ -50,7 +50,8 @@ OPENSSL_OLD_VERSIONS = [
+ OPENSSL_RECENT_VERSIONS = [
+     "1.0.2p",
+     "1.1.0i",
+-    "1.1.1",
++    "1.1.1k",
++    "3.0.0-alpha15"
+ ]
+ 
+ LIBRESSL_OLD_VERSIONS = [

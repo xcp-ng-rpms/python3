@@ -1,0 +1,49 @@
+diff --git a/Lib/test/test_ssl.py b/Lib/test/test_ssl.py
+index f43c094e4a95..7fb5033676b4 100644
+--- a/Lib/test/test_ssl.py
++++ b/Lib/test/test_ssl.py
+@@ -1646,7 +1646,7 @@ class SimpleBackgroundTests(unittest.TestCase):
+         # OpenSSL 0.9.8n and 1.0.0, as a result the capath directory must
+         # contain both versions of each certificate (same content, different
+         # filename) for this test to be portable across OpenSSL releases.
+-        ctx = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
++        ctx = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
+         ctx.verify_mode = ssl.CERT_REQUIRED
+         ctx.load_verify_locations(capath=CAPATH)
+         with ctx.wrap_socket(socket.socket(socket.AF_INET)) as s:
+@@ -1654,7 +1654,7 @@ class SimpleBackgroundTests(unittest.TestCase):
+             cert = s.getpeercert()
+             self.assertTrue(cert)
+         # Same with a bytes `capath` argument
+-        ctx = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
++        ctx = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
+         ctx.verify_mode = ssl.CERT_REQUIRED
+         ctx.load_verify_locations(capath=BYTES_CAPATH)
+         with ctx.wrap_socket(socket.socket(socket.AF_INET)) as s:
+@@ -1666,7 +1666,7 @@ class SimpleBackgroundTests(unittest.TestCase):
+         with open(SIGNING_CA) as f:
+             pem = f.read()
+         der = ssl.PEM_cert_to_DER_cert(pem)
+-        ctx = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
++        ctx = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
+         ctx.verify_mode = ssl.CERT_REQUIRED
+         ctx.load_verify_locations(cadata=pem)
+         with ctx.wrap_socket(socket.socket(socket.AF_INET)) as s:
+@@ -1675,7 +1675,7 @@ class SimpleBackgroundTests(unittest.TestCase):
+             self.assertTrue(cert)
+ 
+         # same with DER
+-        ctx = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
++        ctx = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
+         ctx.verify_mode = ssl.CERT_REQUIRED
+         ctx.load_verify_locations(cadata=der)
+         with ctx.wrap_socket(socket.socket(socket.AF_INET)) as s:
+@@ -1747,7 +1747,7 @@ class SimpleBackgroundTests(unittest.TestCase):
+ 
+     def test_get_ca_certs_capath(self):
+         # capath certs are loaded on request
+-        ctx = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
++        ctx = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
+         ctx.verify_mode = ssl.CERT_REQUIRED
+         ctx.load_verify_locations(capath=CAPATH)
+         self.assertEqual(ctx.get_ca_certs(), [])

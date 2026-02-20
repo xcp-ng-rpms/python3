@@ -18,7 +18,7 @@ URL: https://www.python.org/
 #  WARNING  When rebasing to a new Python version,
 #           remember to update the python3-docs package as well
 Version: %{pybasever}.8
-Release: %{?xsrel}%{?dist}
+Release: %{?xsrel}~XCPNG2710.4%{?dist}
 License: Python
 
 

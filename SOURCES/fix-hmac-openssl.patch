@@ -1,0 +1,82 @@
+diff --git a/Modules/_hmacopenssl.c b/Modules/_hmacopenssl.c
+index 4586eba66143..99d590e27787 100644
+--- a/Modules/_hmacopenssl.c
++++ b/Modules/_hmacopenssl.c
+@@ -82,7 +82,7 @@ Hmac_new(PyTypeObject *subtype, PyObject *args, PyObject *kwds)
+     }
+ 
+     PyObject *name = NULL;
+-    HMAC_CTX *ctx = PyMem_RawCalloc(1, sizeof(HMAC_CTX));
++    HMAC_CTX *ctx = HMAC_CTX_new();
+     HmacObject *retval = NULL;
+ 
+     name = PyUnicode_FromFormat("hmac-%s", digestmod);
+@@ -121,7 +121,7 @@ Hmac_new(PyTypeObject *subtype, PyObject *args, PyObject *kwds)
+     return (PyObject*)retval;
+ 
+ error:
+-    if (ctx) PyMem_RawFree(ctx);
++    if (ctx) HMAC_CTX_free(ctx);
+     if (name) Py_DECREF(name);
+     if (retval) PyObject_Del(name);
+     if (key.buf) PyBuffer_Release(&key);
+@@ -140,20 +140,20 @@ _hmacopenssl_HMAC_copy_impl(HmacObject *self)
+ {
+     HmacObject *retval;
+ 
+-    HMAC_CTX *ctx = PyMem_RawCalloc(1, sizeof(HMAC_CTX));
++    HMAC_CTX *ctx = HMAC_CTX_new();
+     if (ctx == NULL) {
+         return _setException(PyExc_ValueError);
+     }
+ 
+     int r = HMAC_CTX_copy(ctx, self->ctx);
+     if (r == 0) {
+-        PyMem_RawFree(ctx);
++        HMAC_CTX_free(ctx);
+         return _setException(PyExc_ValueError);
+     }
+ 
+     retval = (HmacObject *)Py_TYPE(self)->tp_alloc(Py_TYPE(self), 0);
+     if (retval == NULL) {
+-        PyMem_RawFree(ctx);
++        HMAC_CTX_free(ctx);
+         return NULL;
+     }
+     retval->ctx = ctx;
+@@ -221,7 +221,7 @@ _hmacopenssl_HMAC_update_impl(HmacObject *self, Py_buffer *msg)
+ static unsigned int
+ _digest_size(HmacObject *self)
+ {
+-    const EVP_MD *md = self->ctx->md;
++    const EVP_MD *md = HMAC_CTX_get_md(self->ctx);
+     if (md == NULL) {
+         _setException(PyExc_ValueError);
+         return 0;
+@@ -232,7 +232,7 @@ _digest_size(HmacObject *self)
+ static int
+ _digest(HmacObject *self, unsigned char *buf, unsigned int len)
+ {
+-    HMAC_CTX *temp_ctx = PyMem_RawCalloc(1, sizeof(HMAC_CTX));
++    HMAC_CTX * temp_ctx = HMAC_CTX_new();
+     if (temp_ctx == NULL) {
+         PyErr_NoMemory();
+         return 0;
+@@ -243,7 +243,7 @@ _digest(HmacObject *self, unsigned char *buf, unsigned int len)
+         return 0;
+     }
+     r = HMAC_Final(temp_ctx, buf, &len);
+-    PyMem_RawFree(temp_ctx);
++    HMAC_CTX_free(temp_ctx);
+     if (r == 0) {
+         _setException(PyExc_ValueError);
+         return 0;
+@@ -313,7 +313,7 @@ _hmacopenssl_get_digest_size(HmacObject *self, void *closure)
+ static PyObject *
+ _hmacopenssl_get_block_size(HmacObject *self, void *closure)
+ {
+-    const EVP_MD *md = self->ctx->md;
++    const EVP_MD *md = HMAC_CTX_get_md(self->ctx);
+     if (md == NULL) {
+         return _setException(PyExc_ValueError);
+     }

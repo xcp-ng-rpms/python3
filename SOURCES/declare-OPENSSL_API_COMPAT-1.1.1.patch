@@ -1,0 +1,88 @@
+From 9fd6691db1eb5f40b8e912b86721a73db596eb7b Mon Sep 17 00:00:00 2001
+From: Christian Heimes <christian@python.org>
+Date: Tue, 13 Apr 2021 08:17:26 +0200
+Subject: [PATCH] [3.8] bpo-43799: OpenSSL 3.0.0: declare OPENSSL_API_COMPAT
+ 1.1.1 (GH-25329)
+
+Signed-off-by: Christian Heimes <christian@python.org>.
+(cherry picked from commit a4833883c9b81b6b272cc7c5b67fa1658b65304c)
+
+Co-authored-by: Christian Heimes <christian@python.org>
+diff --git a/Modules/_hashopenssl.c b/Modules/_hashopenssl.c
+index 6bfb12c5618b..1bf0a2976019 100644
+--- a/Modules/_hashopenssl.c
++++ b/Modules/_hashopenssl.c
+@@ -11,6 +11,12 @@
+  *
+  */
+ 
++/* Don't warn about deprecated functions, */
++#ifndef OPENSSL_API_COMPAT
++  // 0x10101000L == 1.1.1, 30000 == 3.0.0
++  #define OPENSSL_API_COMPAT 0x10101000L
++#endif
++
+ #define PY_SSIZE_T_CLEAN
+ 
+ #include "Python.h"
+@@ -18,6 +24,7 @@
+ #include "hashlib.h"
+ #include "pystrhex.h"
+ #include "_hashopenssl.h"
++#include <openssl/err.h>
+ 
+ 
+ /* EVP is the preferred interface to hashing in OpenSSL */
+diff --git a/Modules/_ssl.c b/Modules/_ssl.c
+index 4ed689f4a9c1..6939028e77e7 100644
+--- a/Modules/_ssl.c
++++ b/Modules/_ssl.c
+@@ -14,6 +14,12 @@
+        http://bugs.python.org/issue8108#msg102867 ?
+ */
+ 
++/* Don't warn about deprecated functions, */
++#ifndef OPENSSL_API_COMPAT
++  // 0x10101000L == 1.1.1, 30000 == 3.0.0
++  #define OPENSSL_API_COMPAT 0x10101000L
++#endif
++
+ #define PY_SSIZE_T_CLEAN
+ 
+ #include "Python.h"
+@@ -60,14 +66,6 @@ static PySocketModule_APIObject PySocketModule;
+ #include <arpa/inet.h>
+ #endif
+ 
+-/* Don't warn about deprecated functions */
+-#ifdef __GNUC__
+-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+-#endif
+-#ifdef __clang__
+-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+-#endif
+-
+ /* Include OpenSSL header files */
+ #include "openssl/rsa.h"
+ #include "openssl/crypto.h"
+@@ -111,6 +109,20 @@ struct py_ssl_library_code {
+ #include "_ssl_data.h"
+ #endif
+ 
++/* OpenSSL API 1.1.0+ does not include version methods. Define the methods
++ * unless OpenSSL is compiled without the methods. It's the easiest way to
++ * make 1.0.2, 1.1.0, 1.1.1, and 3.0.0 happy without deprecation warnings.
++ */
++#ifndef OPENSSL_NO_TLS1_METHOD
++extern const SSL_METHOD *TLSv1_method(void);
++#endif
++#ifndef OPENSSL_NO_TLS1_1_METHOD
++extern const SSL_METHOD *TLSv1_1_method(void);
++#endif
++#ifndef OPENSSL_NO_TLS1_2_METHOD
++extern const SSL_METHOD *TLSv1_2_method(void);
++#endif
++
+ #if (OPENSSL_VERSION_NUMBER >= 0x10100000L) && !defined(LIBRESSL_VERSION_NUMBER)
+ #  define OPENSSL_VERSION_1_1 1
+ #  define PY_OPENSSL_1_1_API 1

@@ -1,0 +1,30 @@
+From 257ea6c3a5b6ee057f93d1aa8028729136ed66a8 Mon Sep 17 00:00:00 2001
+From: Christian Heimes <christian@python.org>
+Date: Fri, 9 Apr 2021 22:23:10 +0200
+Subject: [PATCH] bpo-38820: OpenSSL 3.0.0: Use supported hashing algos in doc
+ test (GH-25319)
+
+ripemd160 is not available in OpenSSL 3.0.0's default crypto provider.
+It's only present in legacy provider.
+
+Signed-off-by: Christian Heimes <christian@python.org>
+(cherry picked from commit 2d7fdc90731e132f9d6b43852ee112f25831394b)
+
+Co-authored-by: Christian Heimes <christian@python.org>
+diff --git a/Doc/library/hashlib.rst b/Doc/library/hashlib.rst
+index b4f517635233..d78f9f48d1b4 100644
+--- a/Doc/library/hashlib.rst
++++ b/Doc/library/hashlib.rst
+@@ -109,10 +109,10 @@ More condensed:
+ 
+ Using :func:`new` with an algorithm provided by OpenSSL:
+ 
+-   >>> h = hashlib.new('ripemd160')
++   >>> h = hashlib.new('sha512_256')
+    >>> h.update(b"Nobody inspects the spammish repetition")
+    >>> h.hexdigest()
+-   'cc4a5ce1b3df48aec5d22d1f16b894a0b894eccc'
++   '19197dc4d03829df858011c6c87600f994a858103bbc19005f20987aa19a97e2'
+ 
+ Hashlib provides the following constant attributes:
+ 

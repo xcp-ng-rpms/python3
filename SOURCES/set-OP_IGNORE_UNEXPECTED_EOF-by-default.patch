@@ -1,0 +1,84 @@
+From 1f6a5c8aa2acd7bf8ba1353fc69a0e1bcfe2e958 Mon Sep 17 00:00:00 2001
+From: Christian Heimes <christian@python.org>
+Date: Fri, 9 Apr 2021 17:59:21 +0200
+Subject: [PATCH] bpo-43794: OpenSSL 3.0.0: set OP_IGNORE_UNEXPECTED_EOF by
+ default (GH-25309)
+
+Signed-off-by: Christian Heimes <christian@python.org>
+(cherry picked from commit 6f37ebc61e9e0d13bcb1a2ddb7fc9723c04b6372)
+
+Co-authored-by: Christian Heimes <christian@python.org>
+diff --git a/Doc/library/ssl.rst b/Doc/library/ssl.rst
+index a85be1a744ab..e59d1e3e6579 100644
+--- a/Doc/library/ssl.rst
++++ b/Doc/library/ssl.rst
+@@ -844,6 +844,14 @@ Constants
+ 
+    .. versionadded:: 3.6
+ 
++.. data:: OP_IGNORE_UNEXPECTED_EOF
++
++   Ignore unexpected shutdown of TLS connections.
++
++   This option is only available with OpenSSL 3.0.0 and later.
++
++   .. versionadded:: 3.10
++
+ .. data:: HAS_ALPN
+ 
+    Whether the OpenSSL library has built-in support for the *Application-Layer
+diff --git a/Lib/test/test_ssl.py b/Lib/test/test_ssl.py
+index aed3a8cd83ed..9408a619485b 100644
+--- a/Lib/test/test_ssl.py
++++ b/Lib/test/test_ssl.py
+@@ -106,6 +106,7 @@ OP_SINGLE_DH_USE = getattr(ssl, "OP_SINGLE_DH_USE", 0)
+ OP_SINGLE_ECDH_USE = getattr(ssl, "OP_SINGLE_ECDH_USE", 0)
+ OP_CIPHER_SERVER_PREFERENCE = getattr(ssl, "OP_CIPHER_SERVER_PREFERENCE", 0)
+ OP_ENABLE_MIDDLEBOX_COMPAT = getattr(ssl, "OP_ENABLE_MIDDLEBOX_COMPAT", 0)
++OP_IGNORE_UNEXPECTED_EOF = getattr(ssl, "OP_IGNORE_UNEXPECTED_EOF", 0)
+ 
+ 
+ def handle_error(prefix):
+@@ -966,7 +967,8 @@ class ContextTests(unittest.TestCase):
+         # SSLContext also enables these by default
+         default |= (OP_NO_COMPRESSION | OP_CIPHER_SERVER_PREFERENCE |
+                     OP_SINGLE_DH_USE | OP_SINGLE_ECDH_USE |
+-                    OP_ENABLE_MIDDLEBOX_COMPAT)
++                    OP_ENABLE_MIDDLEBOX_COMPAT |
++                    OP_IGNORE_UNEXPECTED_EOF)
+         self.assertEqual(default, ctx.options)
+         ctx.options |= ssl.OP_NO_TLSv1
+         self.assertEqual(default | ssl.OP_NO_TLSv1, ctx.options)
+diff --git a/Misc/NEWS.d/next/Library/2021-04-09-16-14-22.bpo-43794.-1XPDH.rst b/Misc/NEWS.d/next/Library/2021-04-09-16-14-22.bpo-43794.-1XPDH.rst
+new file mode 100644
+index 000000000000..64894bdc017e
+--- /dev/null
++++ b/Misc/NEWS.d/next/Library/2021-04-09-16-14-22.bpo-43794.-1XPDH.rst
+@@ -0,0 +1 @@
++Add :data:`ssl.OP_IGNORE_UNEXPECTED_EOF` constants (OpenSSL 3.0.0)
+diff --git a/Modules/_ssl.c b/Modules/_ssl.c
+index 5ad3d7ce7a88..4ed689f4a9c1 100644
+--- a/Modules/_ssl.c
++++ b/Modules/_ssl.c
+@@ -2886,6 +2886,10 @@ _ssl__SSLContext_impl(PyTypeObject *type, int proto_version)
+ #endif
+ #ifdef SSL_OP_SINGLE_ECDH_USE
+     options |= SSL_OP_SINGLE_ECDH_USE;
++#endif
++#ifdef SSL_OP_IGNORE_UNEXPECTED_EOF
++    /* Make OpenSSL 3.0.0 behave like 1.1.1 */
++    options |= SSL_OP_IGNORE_UNEXPECTED_EOF;
+ #endif
+     SSL_CTX_set_options(self->ctx, options);
+ 
+@@ -5650,6 +5654,10 @@ PyInit__ssl(void)
+     PyModule_AddIntConstant(m, "OP_ENABLE_MIDDLEBOX_COMPAT",
+                             SSL_OP_ENABLE_MIDDLEBOX_COMPAT);
+ #endif
++#ifdef SSL_OP_IGNORE_UNEXPECTED_EOF
++    PyModule_AddIntConstant(m, "OP_IGNORE_UNEXPECTED_EOF",
++                            SSL_OP_IGNORE_UNEXPECTED_EOF);
++#endif
+ 
+ #if HAVE_SNI
+     r = Py_True;

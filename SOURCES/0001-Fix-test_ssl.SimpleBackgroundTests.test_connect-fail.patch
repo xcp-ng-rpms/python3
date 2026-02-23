@@ -1,0 +1,55 @@
+From f47e496dfa109ba70ecb1604d263b9e884b4fa35 Mon Sep 17 00:00:00 2001
+From: Deli Zhang <deli.zhang@citrix.com>
+Date: Fri, 16 Aug 2024 06:14:42 +0000
+Subject: [PATCH] Fix test_ssl.SimpleBackgroundTests.test_connect failure
+
+The client socket is closed too quickly, causes below error.
+Traceback (most recent call last):
+  File "/builddir/build/BUILD/Python-3.6.8/Lib/test/test_ssl.py", line 1565, in test_connect
+    s.connect(self.server_addr)
+  File "/builddir/build/BUILD/Python-3.6.8/Lib/ssl.py", line 1068, in connect
+    self._real_connect(addr, False)
+  File "/builddir/build/BUILD/Python-3.6.8/Lib/ssl.py", line 1059, in _real_connect
+    self.do_handshake()
+  File "/builddir/build/BUILD/Python-3.6.8/Lib/ssl.py", line 1036, in do_handshake
+    self._sslobj.do_handshake()
+  File "/builddir/build/BUILD/Python-3.6.8/Lib/ssl.py", line 648, in do_handshake
+    self._sslobj.do_handshake()
+ConnectionResetError: [Errno 104] Connection reset by peer
+
+The fix refers to
+* https://github.com/python/cpython/commit/c8666cfa7cdc48915a14cd16095a69029720736a
+* https://github.com/python/cpython/commit/ea9a296fce2f786b4cf43c7924e5de01061f27ca
+
+Signed-off-by: Deli Zhang <deli.zhang@citrix.com>
+---
+ Lib/test/test_ssl.py | 12 ++++++++++--
+ 1 file changed, 10 insertions(+), 2 deletions(-)
+
+diff --git a/Lib/test/test_ssl.py b/Lib/test/test_ssl.py
+index 7fb5033..06c9c07 100644
+--- a/Lib/test/test_ssl.py
++++ b/Lib/test/test_ssl.py
+@@ -2069,9 +2069,17 @@ if _have_threads:
+                                 sys.stdout.write(" server: read %r (%s), sending back %r (%s)...\n"
+                                                  % (msg, ctype, msg.lower(), ctype))
+                             self.write(msg.lower())
+-                    except OSError:
++                    except OSError as e:
++                        # handles SSLError and socket errors
+                         if self.server.chatty:
+-                            handle_error("Test server failure:\n")
++                            if isinstance(e, ConnectionError):
++                                # OpenSSL 1.1.1 sometimes raises
++                                # ConnectionResetError when connection is not
++                                # shut down gracefully
++                                print(f" Connection reset by peer: {self.addr}")
++                            else:
++                                handle_error("Test server failure:\n")
++
+                         self.close()
+                         self.running = False
+                         # normally, we'd just stop here, but for the test
+-- 
+2.43.0
+

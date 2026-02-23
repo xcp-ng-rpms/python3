@@ -1,0 +1,22 @@
+From 2b606a5f68524d54adf697bc3aef869ad982685a Mon Sep 17 00:00:00 2001
+From: Christian Heimes <christian@python.org>
+Date: Sun, 2 May 2021 15:59:24 +0200
+Subject: [PATCH] bpo-38820: Add ssl, hashlib, and hmac changes to whatsnew
+ 3.10
+
+Signed-off-by: Christian Heimes <christian@python.org>
+diff --git a/Doc/library/ssl.rst b/Doc/library/ssl.rst
+index f2fb962c6485..36aa4809e55b 100644
+--- a/Doc/library/ssl.rst
++++ b/Doc/library/ssl.rst
+@@ -1213,6 +1213,10 @@ SSL sockets also have the following additional methods and attributes:
+ 
+    .. versionadded:: 3.3
+ 
++   .. deprecated:: 3.10
++
++      NPN has been superseded by ALPN
++
+ .. method:: SSLSocket.unwrap()
+ 
+    Performs the SSL shutdown handshake, which removes the TLS layer from the

@@ -1,0 +1,15 @@
+diff --git a/Lib/test/test_ssl.py b/Lib/test/test_ssl.py
+index 7d24164a9861..f43c094e4a95 100644
+--- a/Lib/test/test_ssl.py
++++ b/Lib/test/test_ssl.py
+@@ -424,7 +424,9 @@ class BasicSocketTests(unittest.TestCase):
+             self.assertTrue(s.startswith("LibreSSL {:d}".format(major)),
+                             (s, t, hex(n)))
+         else:
+-            self.assertTrue(s.startswith("OpenSSL {:d}.{:d}.{:d}".format(major, minor, fix)),
++            # now the text becomes major.minor.patch
++            # https://code.citrite.net/projects/XSU/repos/openssl/browse/Configure#361
++            self.assertTrue(s.startswith("OpenSSL {:d}.{:d}.{:d}".format(major, minor, patch)),
+                             (s, t, hex(n)))
+ 
+     @support.cpython_only

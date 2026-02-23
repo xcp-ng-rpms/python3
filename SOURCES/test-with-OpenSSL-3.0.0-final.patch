@@ -1,0 +1,33 @@
+From 4cf424c81224e99e16446d4f3b8714e5cd653017 Mon Sep 17 00:00:00 2001
+From: Christian Heimes <christian@python.org>
+Date: Tue, 7 Sep 2021 20:04:55 +0300
+Subject: [PATCH] bpo-38820: Test with OpenSSL 3.0.0 final (GH-28205)
+
+Signed-off-by: Christian Heimes <christian@python.org>
+(cherry picked from commit cc7c6801945c6a7373553b78bd899ce09681ec0a)
+
+Co-authored-by: Christian Heimes <christian@python.org>
+diff --git a/Tools/ssl/multissltests.py b/Tools/ssl/multissltests.py
+index 51569f82b948..34045c9b7e4b 100755
+--- a/Tools/ssl/multissltests.py
++++ b/Tools/ssl/multissltests.py
+@@ -50,7 +50,7 @@ OPENSSL_RECENT_VERSIONS = [
+     "1.0.2p",
+     "1.1.0i",
+     "1.1.1k",
+-    "3.0.0-alpha16"
++    "3.0.0"
+ ]
+ 
+ LIBRESSL_OLD_VERSIONS = [
+@@ -186,6 +186,10 @@ class AbstractBuilder(object):
+             self.library == other.library
+             and self.version == other.version
+         )
++        if not os.path.isdir(self.lib_dir):
++            # 3.0.0-beta2 uses lib64 on 64 bit platforms
++            lib64 = self.lib_dir + "64"
++            os.symlink(lib64, self.lib_dir)
+ 
+     def __hash__(self):
+         return hash((self.library, self.version))

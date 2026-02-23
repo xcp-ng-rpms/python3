@@ -1,0 +1,34 @@
+From 38a0a4f2671625bd4ef60ca3b1f95e33c83d36aa Mon Sep 17 00:00:00 2001
+From: Christian Heimes <christian@python.org>
+Date: Fri, 9 Apr 2021 15:23:38 +0200
+Subject: [PATCH] bpo-43789: OpenSSL 3.0.0 Don't call passwd callback again in
+ error case (GH-25303) (cherry picked from commit
+ d3b73f32ef7c693a6ae8c54eb0e62df3b5315caf)
+
+Co-authored-by: Christian Heimes <christian@python.org>
+diff --git a/Misc/NEWS.d/next/Library/2021-04-09-14-08-03.bpo-43789.eaHlAm.rst b/Misc/NEWS.d/next/Library/2021-04-09-14-08-03.bpo-43789.eaHlAm.rst
+new file mode 100644
+index 000000000000..1c0852946214
+--- /dev/null
++++ b/Misc/NEWS.d/next/Library/2021-04-09-14-08-03.bpo-43789.eaHlAm.rst
+@@ -0,0 +1,2 @@
++OpenSSL 3.0.0: Don't call the password callback function a second time when
++first call has signaled an error condition.
+diff --git a/Modules/_ssl.c b/Modules/_ssl.c
+index 1c96f5f9484c..5ad3d7ce7a88 100644
+--- a/Modules/_ssl.c
++++ b/Modules/_ssl.c
+@@ -3447,6 +3447,13 @@ _password_callback(char *buf, int size, int rwflag, void *userdata)
+ 
+     PySSL_END_ALLOW_THREADS_S(pw_info->thread_state);
+ 
++    if (pw_info->error) {
++        /* already failed previously. OpenSSL 3.0.0-alpha14 invokes the
++         * callback multiple times which can lead to fatal Python error in
++         * exception check. */
++        goto error;
++    }
++
+     if (pw_info->callable) {
+         fn_ret = PyObject_CallFunctionObjArgs(pw_info->callable, NULL);
+         if (!fn_ret) {

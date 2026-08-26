@@ -1,0 +1,95 @@
+From: Vincent Michel <vincent.michel@vates.tech>
+Date: Thu, 27 Aug 2026 00:58:50 +0200
+Subject: Fix test_ssl.py for openssl 3.5
+
+The update to openssl 3.5 caused some of the tests in
+test_ssl.py to fail. This patch provides minimal changes
+to make the tests pass. Note that similar changes can be
+found in the later versions of python (3.7 and 3.8).
+
+See the related fixes in the CPython repository:
+* bpo-31346 (https://github.com/python/cpython/pull/3058)
+* bpo-33618 (https://github.com/python/cpython/pull/7079)
+
+Traceback of the errors:
+```
+======================================================================
+ERROR: test_subclass (test.test_ssl.SSLErrorTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/builder/rpmbuild/BUILD/Python-3.6.8/Lib/test/test_ssl.py", line 1473, in test_subclass
+    c.do_handshake()
+  File "/home/builder/rpmbuild/BUILD/Python-3.6.8/Lib/ssl.py", line 1036, in do_handshake
+    self._sslobj.do_handshake()
+  File "/home/builder/rpmbuild/BUILD/Python-3.6.8/Lib/ssl.py", line 648, in do_handshake
+    self._sslobj.do_handshake()
+ssl.SSLError: [SSL] internal error (_ssl.c:895)
+
+======================================================================
+ERROR: test_ciphers (test.test_ssl.SimpleBackgroundTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/builder/rpmbuild/BUILD/Python-3.6.8/Lib/test/test_ssl.py", line 1740, in test_ciphers
+    s.connect(self.server_addr)
+  File "/home/builder/rpmbuild/BUILD/Python-3.6.8/Lib/ssl.py", line 1068, in connect
+    self._real_connect(addr, False)
+  File "/home/builder/rpmbuild/BUILD/Python-3.6.8/Lib/ssl.py", line 1055, in _real_connect
+    socket.connect(self, addr)
+ConnectionRefusedError: [Errno 111] Connection refused
+
+======================================================================
+ERROR: test_connect (test.test_ssl.SimpleBackgroundTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/builder/rpmbuild/BUILD/Python-3.6.8/Lib/test/test_ssl.py", line 1565, in test_connect
+    s.connect(self.server_addr)
+  File "/home/builder/rpmbuild/BUILD/Python-3.6.8/Lib/ssl.py", line 1068, in connect
+    self._real_connect(addr, False)
+  File "/home/builder/rpmbuild/BUILD/Python-3.6.8/Lib/ssl.py", line 1055, in _real_connect
+    socket.connect(self, addr)
+ConnectionRefusedError: [Errno 111] Connection refused
+
+======================================================================
+ERROR: test_connect_with_context (test.test_ssl.SimpleBackgroundTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/builder/rpmbuild/BUILD/Python-3.6.8/Lib/test/test_ssl.py", line 1623, in test_connect_with_context
+    s.connect(self.server_addr)
+  File "/home/builder/rpmbuild/BUILD/Python-3.6.8/Lib/ssl.py", line 1068, in connect
+    self._real_connect(addr, False)
+  File "/home/builder/rpmbuild/BUILD/Python-3.6.8/Lib/ssl.py", line 1055, in _real_connect
+    socket.connect(self, addr)
+ConnectionRefusedError: [Errno 111] Connection refused
+```
+---
+ Lib/test/test_ssl.py | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/Lib/test/test_ssl.py b/Lib/test/test_ssl.py
+index 06c9c07..8ea7cc5 100644
+--- a/Lib/test/test_ssl.py
++++ b/Lib/test/test_ssl.py
+@@ -1461,7 +1461,9 @@ class SSLErrorTests(unittest.TestCase):
+     def test_subclass(self):
+         # Check that the appropriate SSLError subclass is raised
+         # (this only tests one of them)
+-        ctx = ssl.SSLContext(ssl.PROTOCOL_TLSv1)
++        ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
++        ctx.check_hostname = False
++        ctx.verify_mode = ssl.CERT_NONE
+         with socket.socket() as s:
+             s.bind(("127.0.0.1", 0))
+             s.listen()
+@@ -2084,7 +2086,8 @@ if _have_threads:
+                         self.running = False
+                         # normally, we'd just stop here, but for the test
+                         # harness, we want to stop the server
+-                        self.server.stop()
++                        if not isinstance(e, ConnectionResetError):
++                            self.server.stop()
+ 
+         def __init__(self, certificate=None, ssl_version=None,
+                      certreqs=None, cacerts=None,
+-- 
+1.8.3.1
+

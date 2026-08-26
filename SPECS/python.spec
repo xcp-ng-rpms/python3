@@ -288,6 +288,10 @@ Patch47: 0001-Fix-test_ssl.SimpleBackgroundTests.test_connect-fail.patch
 Patch48: 0001-CP-50324-Replace-deprecated-functions.patch
 Patch49: 0001-ignore-test_gdb.patch
 
+# XCP-ng patches
+Patch1001: 0002-Fix-test_ssl-for-openssl-3.5.patch
+Patch1002: 0003-Fix-test_ftplib-for-openssl-3.5.patch
+
 # A simple script to check timestamps of bytecode files
 # Run in check section with Python that is currently being built
 # Written by bkabrda
@@ -1448,6 +1452,8 @@ CheckPython optimized
 # Finally, the changelog:
 # ======================================================
 
+# Changes since the last build, to fold into the next changelog entry:
+# - Add patches to fix test_ssl and test_ftplib for openssl 3.5
 %changelog
 * Thu Mar 06 2025 Deli Zhang <deli.zhang@cloud.com> - 3.6.8-20
 - CP-53516: Fix build issue caused by expat upgrade

@@ -1,0 +1,95 @@
+From: Vincent Michel <vincent.michel@vates.tech>
+Date: Thu, 27 Aug 2026 02:22:23 +0200
+Subject: Fix test_ftplib.py for openssl 3.5
+
+The update to openssl 3.5 caused some of the tests in
+test_ftplib.py to fail. This patch provides minimal changes
+to make the tests pass. Note that similar changes can be
+found in the later versions of python (3.11 and later).
+
+See the related fixes in the CPython repository:
+* bpo-44359 (https://github.com/python/cpython/pull/31069)
+
+Traceback of the error:
+```
+======================================================================
+ERROR: test_check_hostname (test.test_ftplib.TestTLS_FTPClass)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/builder/rpmbuild/BUILD/Python-3.6.8/Lib/test/test_ftplib.py", line 966, in test_check_hostname
+    self.client.quit()
+  File "/home/builder/rpmbuild/BUILD/Python-3.6.8/Lib/ftplib.py", line 665, in quit
+    resp = self.voidcmd('QUIT')
+  File "/home/builder/rpmbuild/BUILD/Python-3.6.8/Lib/ftplib.py", line 278, in voidcmd
+    return self.voidresp()
+  File "/home/builder/rpmbuild/BUILD/Python-3.6.8/Lib/ftplib.py", line 251, in voidresp
+    resp = self.getresp()
+  File "/home/builder/rpmbuild/BUILD/Python-3.6.8/Lib/ftplib.py", line 236, in getresp
+    resp = self.getmultiline()
+  File "/home/builder/rpmbuild/BUILD/Python-3.6.8/Lib/ftplib.py", line 222, in getmultiline
+    line = self.getline()
+  File "/home/builder/rpmbuild/BUILD/Python-3.6.8/Lib/ftplib.py", line 204, in getline
+    line = self.file.readline(self.maxline + 1)
+  File "/home/builder/rpmbuild/BUILD/Python-3.6.8/Lib/socket.py", line 586, in readinto
+    return self._sock.recv_into(b)
+socket.timeout: timed out
+```
+
+Traceback of the exception generated in the test thread:
+```
+test_check_hostname (test.test_ftplib.TestTLS_FTPClass) ...
+Exception in thread Thread-84:
+Traceback (most recent call last):
+  File "/home/builder/rpmbuild/BUILD/Python-3.6.8/Lib/asynchat.py", line 251, in initiate_send
+    num_sent = self.send(data)
+  File "/home/builder/rpmbuild/BUILD/Python-3.6.8/Lib/test/test_ftplib.py", line 378, in send
+    return super(SSLConnection, self).send(data)
+  File "/home/builder/rpmbuild/BUILD/Python-3.6.8/Lib/asyncore.py", line 361, in send
+    result = self.socket.send(data)
+  File "/home/builder/rpmbuild/BUILD/Python-3.6.8/Lib/ssl.py", line 903, in send
+    return self._sslobj.write(data)
+  File "/home/builder/rpmbuild/BUILD/Python-3.6.8/Lib/ssl.py", line 601, in write
+    return self._sslobj.write(data)
+ssl.SSLError: [SYS] unknown error (_ssl.c:2252)
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/builder/rpmbuild/BUILD/Python-3.6.8/Lib/asyncore.py", line 91, in write
+    obj.handle_write_event()
+  File "/home/builder/rpmbuild/BUILD/Python-3.6.8/Lib/test/test_ftplib.py", line 374, in handle_write_event
+    super(SSLConnection, self).handle_write_event()
+  File "/home/builder/rpmbuild/BUILD/Python-3.6.8/Lib/asyncore.py", line 442, in handle_write_event
+    self.handle_write()
+  File "/home/builder/rpmbuild/BUILD/Python-3.6.8/Lib/asynchat.py", line 187, in handle_write
+    self.initiate_send()
+  File "/home/builder/rpmbuild/BUILD/Python-3.6.8/Lib/asynchat.py", line 253, in initiate_send
+    self.handle_error()
+  File "/home/builder/rpmbuild/BUILD/Python-3.6.8/Lib/test/test_ftplib.py", line 399, in handle_error
+    raise Exception
+Exception
+```
+---
+ Lib/test/test_ftplib.py | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/Lib/test/test_ftplib.py b/Lib/test/test_ftplib.py
+index 4ff2f71..d0c68a8 100644
+--- a/Lib/test/test_ftplib.py
++++ b/Lib/test/test_ftplib.py
+@@ -396,6 +396,12 @@ if ssl is not None:
+                 raise
+ 
+         def handle_error(self):
++            import sys
++            _, exc, _ = sys.exc_info()
++            assert ssl is not None
++            if isinstance(exc, ssl.SSLError):
++                self.handle_close()
++                return
+             raise Exception
+ 
+         def close(self):
+-- 
+1.8.3.1
+

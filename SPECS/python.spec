@@ -291,6 +291,7 @@ Patch49: 0001-ignore-test_gdb.patch
 # XCP-ng patches
 Patch1001: 0002-Fix-test_ssl-for-openssl-3.5.patch
 Patch1002: 0003-Fix-test_ftplib-for-openssl-3.5.patch
+Patch1003: 0004-Use-BIO_eof-to-detect-EOF-for-SSL_FILETYPE_ASN1.patch
 
 # A simple script to check timestamps of bytecode files
 # Run in check section with Python that is currently being built
@@ -1454,6 +1455,7 @@ CheckPython optimized
 
 # Changes since the last build, to fold into the next changelog entry:
 # - Add patches to fix test_ssl and test_ftplib for openssl 3.5
+# - Fix ssl.SSLError: [ASN1: NOT_ENOUGH_DATA] when loading DER cadata with openssl 3.5.7+
 %changelog
 * Thu Mar 06 2025 Deli Zhang <deli.zhang@cloud.com> - 3.6.8-20
 - CP-53516: Fix build issue caused by expat upgrade

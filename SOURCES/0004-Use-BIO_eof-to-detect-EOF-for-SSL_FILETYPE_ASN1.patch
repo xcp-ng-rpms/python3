@@ -1,0 +1,105 @@
+From: David Benjamin <davidben@google.com>
+Date: Fri, 24 Mar 2023 09:04:30 -0400
+Subject: Use BIO_eof to detect EOF for SSL_FILETYPE_ASN1
+
+In PEM, we need to parse until error and then suppress
+`PEM_R_NO_START_LINE`, because PEM allows arbitrary leading and
+trailing data. DER, however, does not. Parsing until error and
+suppressing `ASN1_R_HEADER_TOO_LONG` doesn't quite work because that
+error also covers some cases that should be rejected.
+
+Instead, check `BIO_eof` early and stop the loop that way.
+
+Since OpenSSL 3.5.7, reaching the end of the DER data raises
+`ASN1_R_NOT_ENOUGH_DATA` instead of `ASN1_R_HEADER_TOO_LONG`, so
+`SSLContext.load_verify_locations(cadata=<DER bytes>)` fails even for
+valid certificates. This patch fixes that.
+
+Backported from the CPython repository:
+* gh-100372 (https://github.com/python/cpython/pull/100373),
+  commit acfe02f3b05436658d92add6b168538b30f357f0
+* See also gh-151504 (https://github.com/python/cpython/issues/151504)
+
+Adapted from Fedora's python3.6 patch 00489-openssl-3.5.7.patch.
+
+Traceback of the errors:
+```
+======================================================================
+ERROR: test_load_verify_cadata (test.test_ssl.ContextTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/builder/rpmbuild/BUILD/Python-3.6.8/Lib/test/test_ssl.py", line 1159, in test_load_verify_cadata
+    ctx.load_verify_locations(cadata=cacert_der)
+ssl.SSLError: [ASN1: NOT_ENOUGH_DATA] not enough data (_ssl.c:3739)
+
+======================================================================
+ERROR: test_connect_cadata (test.test_ssl.SimpleBackgroundTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/builder/rpmbuild/BUILD/Python-3.6.8/Lib/test/test_ssl.py", line 1682, in test_connect_cadata
+    ctx.load_verify_locations(cadata=der)
+ssl.SSLError: [ASN1: NOT_ENOUGH_DATA] not enough data (_ssl.c:3739)
+```
+---
+ Lib/test/test_ssl.py                                   |  2 ++
+ .../2022-12-20-10-55-14.gh-issue-100372.utfP65.rst     |  2 ++
+ Modules/_ssl.c                                         | 10 ++++++----
+ 3 files changed, 10 insertions(+), 4 deletions(-)
+ create mode 100644 Misc/NEWS.d/next/Library/2022-12-20-10-55-14.gh-issue-100372.utfP65.rst
+
+diff --git a/Lib/test/test_ssl.py b/Lib/test/test_ssl.py
+index 6b3dca1..17856f9 100644
+--- a/Lib/test/test_ssl.py
++++ b/Lib/test/test_ssl.py
+@@ -1183,6 +1183,8 @@ class ContextTests(unittest.TestCase):
+             "not enough data: cadata does not contain a certificate"
+         ):
+             ctx.load_verify_locations(cadata=b"broken")
++        with self.assertRaises(ssl.SSLError):
++            ctx.load_verify_locations(cadata=cacert_der + b"A")
+ 
+     def test_load_dh_params(self):
+         ctx = ssl.SSLContext(ssl.PROTOCOL_TLSv1)
+diff --git a/Misc/NEWS.d/next/Library/2022-12-20-10-55-14.gh-issue-100372.utfP65.rst b/Misc/NEWS.d/next/Library/2022-12-20-10-55-14.gh-issue-100372.utfP65.rst
+new file mode 100644
+index 0000000..ec37aff
+--- /dev/null
++++ b/Misc/NEWS.d/next/Library/2022-12-20-10-55-14.gh-issue-100372.utfP65.rst
+@@ -0,0 +1,2 @@
++:meth:`ssl.SSLContext.load_verify_locations` no longer incorrectly accepts
++some cases of trailing data when parsing DER.
+diff --git a/Modules/_ssl.c b/Modules/_ssl.c
+index f65f574..db7c3e3 100644
+--- a/Modules/_ssl.c
++++ b/Modules/_ssl.c
+@@ -3660,7 +3660,7 @@ _add_ca_certs(PySSLContext *self, void *data, Py_ssize_t len,
+ {
+     BIO *biobuf = NULL;
+     X509_STORE *store;
+-    int retval = -1, err, loaded = 0;
++    int retval = -1, err, loaded = 0, was_bio_eof = 0;
+ 
+     assert(filetype == SSL_FILETYPE_ASN1 || filetype == SSL_FILETYPE_PEM);
+ 
+@@ -3688,6 +3688,10 @@ _add_ca_certs(PySSLContext *self, void *data, Py_ssize_t len,
+         int r;
+ 
+         if (filetype == SSL_FILETYPE_ASN1) {
++            if (BIO_eof(biobuf)) {
++                was_bio_eof = 1;
++                break;
++            }
+             cert = d2i_X509_bio(biobuf, NULL);
+         } else {
+             cert = PEM_read_bio_X509(biobuf, NULL,
+@@ -3723,9 +3727,7 @@ _add_ca_certs(PySSLContext *self, void *data, Py_ssize_t len,
+         }
+         _setSSLError(msg, 0, __FILE__, __LINE__);
+         retval = -1;
+-    } else if ((filetype == SSL_FILETYPE_ASN1) &&
+-                    (ERR_GET_LIB(err) == ERR_LIB_ASN1) &&
+-                    (ERR_GET_REASON(err) == ASN1_R_HEADER_TOO_LONG)) {
++    } else if ((filetype == SSL_FILETYPE_ASN1) && was_bio_eof) {
+         /* EOF ASN1 file, not an error */
+         ERR_clear_error();
+         retval = 0;
